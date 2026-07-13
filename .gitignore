@@ -1,0 +1,8 @@
+# Unpacked/packaged Helm dependencies. Chart.lock is COMMITTED (pins versions);
+# the resolved dependency copies under charts/*/charts/ are not.
+charts/*/charts/
+*.tgz
+
+# Editor / OS cruft
+.DS_Store
+*.swp

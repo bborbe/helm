@@ -1,0 +1,103 @@
+# github-dark-factory values.
+#
+# APPLICATION chart. Ships ONE GitHub watcher StatefulSet + ONE agent Config CR,
+# rendered through the `common` library chart.
+#
+# PREREQUISITE: install the core `agent` chart FIRST. It owns the
+# configs.agent.benjamin-borbe.de CRD (plus the task controller + executor).
+# This chart emits a Config CR of that kind but does NOT ship the CRD.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VALUES CONTRACT
+#   * This file carries the unit-INVARIANT defaults — the bits that are the same
+#     no matter which cluster/stage the unit runs on.
+#   * The per-cluster VARIABLE bits are left empty/placeholder below and MUST be
+#     supplied by the cluster's values overlay (or --set). They are called out
+#     inline with `# PER-CLUSTER`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PER-CLUSTER — target namespace. Required (no default; the cluster owns it).
+namespace: ""
+
+# PER-CLUSTER — stage label ("dev"/"prod"). Used to name the cluster-scoped
+# PriorityClass uniquely (<stage>-<agent name>) so dev + prod on one cluster
+# don't collide. Falls back to `namespace` when empty.
+stage: ""
+
+image:
+  # PER-CLUSTER — registry host. Empty default forces the overlay to set it
+  # (e.g. docker.io for public, docker.quant.benjamin-borbe.de:443 for quant).
+  registry: ""
+  pullPolicy: IfNotPresent
+  # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
+  pullSecrets: []
+
+# PER-CLUSTER — node affinity passthrough (quant pins pods to node_type=agent).
+# Empty = no affinity (generic clusters).
+affinity: {}
+
+# PER-CLUSTER — extra pod annotation to force a rollout (value of RANDOM).
+# Empty = omit.
+rolloutNonce: ""
+
+# ── Watcher (unit-invariant defaults) ───────────────────────────────────────
+watcher:
+  enabled: true
+  name: github-dark-factory-watcher
+  image: bborbe/github-dark-factory-watcher
+  # tag: empty => Chart.appVersion (pinned semver; no Keel).
+  # Existing Secret (by name) holding key PEM_KEY (GitHub App private key).
+  # The chart NEVER creates this secret — provision it out of band.
+  existingSecret: github-dark-factory-watcher
+  storage:
+    size: 100Mi
+    # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
+    storageClassName: ""
+  env:
+    POLL_INTERVAL: "5m"
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""            # GitHub App id
+    # INSTALLATION_ID: ""   # GitHub App installation id
+    # REPO_ALLOWLIST: ""    # repos this unit may act on
+    # KAFKA_BROKERS: ""     # e.g. my-cluster-kafka-bootstrap.strimzi:9092
+    # TOPIC_PREFIX: ""      # e.g. develop / master
+
+# ── Agent (unit-invariant defaults) ─────────────────────────────────────────
+agent:
+  enabled: true
+  name: github-dark-factory-agent
+  assignee: github-dark-factory-agent
+  image: bborbe/github-dark-factory-agent
+  # tag: empty => Chart.appVersion.
+  # Existing Secret (by name) -> Config.spec.secretName. Never created here.
+  existingSecret: github-dark-factory-agent
+  taskTypes:
+    - dark-factory-implement
+    - healthcheck
+  triggerPhases:
+    - planning
+    - execution
+    - ai_review
+  triggerStatuses:
+    - in_progress
+  heartbeat: 5m
+  concurrency: 1
+  priorityValue: 500
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 5Gi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 5Gi
+  env:
+    CLAUDE_CONFIG_DIR: /home/node/.claude
+    ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+    ANTHROPIC_MODEL: MiniMax-M2.7-highspeed
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""
+    # INSTALLATION_ID: ""
+    # REPO_ALLOWLIST: ""
+    # TOPIC_PREFIX: ""

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: common
+description: >-
+  Reusable Helm library chart for per-business-unit agent charts. Provides the
+  named templates `common.watcher` (GitHub watcher StatefulSet + headless Service
+  + PVC), `common.agent` (agent Config CR + cluster-scoped PriorityClass +
+  ResourceQuota), and `common.kafkauser` (Strimzi KafkaUser). Consumed via a
+  `file://../common` dependency; it renders nothing on its own.
+type: library
+version: 0.1.0
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: Benjamin Borbe

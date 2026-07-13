@@ -1,0 +1,71 @@
+name: helm-ci
+
+# Lint + render every chart in the monorepo. Application charts get a full
+# `helm template` smoke render with the per-cluster values supplied; the library
+# chart (common) is lint-only (it renders nothing on its own).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  lint-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - name: Lint library chart (common)
+        run: helm lint charts/common
+
+      - name: Build deps, lint + template application charts
+        run: |
+          set -euo pipefail
+          for chart in charts/*/; do
+            name="$(basename "$chart")"
+            [ "$name" = "common" ] && continue
+            echo "::group::$name — dependency build"
+            helm dependency build "$chart"
+            echo "::endgroup::"
+            echo "::group::$name — lint"
+            helm lint "$chart"
+            echo "::endgroup::"
+            echo "::group::$name — template (smoke render)"
+            helm template "$chart" \
+              --set stage=dev \
+              --set namespace=dev \
+              --set image.registry=docker.io
+            echo "::endgroup::"
+          done
+
+  chart-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # `ct` (chart-testing) does change-detected lint across the monorepo.
+      # Best-effort: skips gracefully if the action/tooling is unavailable.
+      - name: Set up chart-testing
+        id: ct-setup
+        continue-on-error: true
+        uses: helm/chart-testing-action@v2.6.1
+
+      - name: Run ct lint
+        if: steps.ct-setup.outcome == 'success'
+        run: ct lint --all --chart-dirs charts
