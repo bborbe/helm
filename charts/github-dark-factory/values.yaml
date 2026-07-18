@@ -83,19 +83,59 @@ agent:
   heartbeat: 5m
   concurrency: 1
   priorityValue: 500
+  # Heavier than a pr-reviewer (which is review-only): the implementer runs FOUR
+  # sequential claude sessions (generate → execute → verify → ai_review), each a
+  # long claude-yolo Node.js process doing tool calls + git between LLM round
+  # trips. 500m (half a core) throttled that local work; give it real cores. The
+  # dominant cost is still the remote LLM latency, but this removes the local
+  # compounder.
+  # Memory: the generated prompt's validation step (`make precommit` — go
+  # build/test/golangci-lint/trivy/gosec) runs INSIDE the agent's claude-yolo
+  # container alongside the claude Node.js process + the dark-factory daemon. At
+  # 2Gi that OOM-killed the pod mid-precommit (~12 min), which the executor
+  # surfaced as the mislabeled `deadline_exceeded` (BackoffLimitExceeded → that
+  # reason enum, spec 043). 6Gi gives the Go toolchain headroom.
+  # ephemeral-storage: `make precommit` (go build cache + `go mod download` +
+  # trivy vuln DB) blew past 5Gi → the pod was EVICTED (exit 137,
+  # ContainerStatusUnknown, at only ~1.4Gi mem — not OOM). Give the Go toolchain
+  # real scratch space. Memory 6Gi (mem is not the bottleneck; ~1.4Gi observed).
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
-      ephemeral-storage: 5Gi
+      cpu: 1000m
+      memory: 3Gi
+      ephemeral-storage: 10Gi
     limits:
-      cpu: 500m
-      memory: 1Gi
-      ephemeral-storage: 5Gi
+      cpu: 2000m
+      memory: 6Gi
+      ephemeral-storage: 25Gi
   env:
     CLAUDE_CONFIG_DIR: /home/node/.claude
     ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
     ANTHROPIC_MODEL: MiniMax-M2.7-highspeed
+    # Bare-clone cache + worktree roots. The executor's Job pod runs as `node`
+    # (uid 1000) on a writable rootfs with NO fsGroup, so the defaults `/repos`
+    # and `/work` (root-owned container root) fail with `mkdir: permission
+    # denied`. Point them under node-owned $HOME instead. Ephemeral per Job pod
+    # (no persistent cache yet — that needs the executor to set fsGroup=1000 on
+    # the Job pod so a mounted PVC is writable; tracked follow-up).
+    REPOS_PATH: /home/node/.cache/github-dark-factory-agent/repos
+    WORK_PATH: /home/node/.cache/github-dark-factory-agent/work
+    # The ai_review step chdir's into the agent config dir to invoke claude. The
+    # default `agent` is RELATIVE and only resolves in local `cmd/run-task` (cwd =
+    # repo root, which has an `agent/` subdir). In the image the config is baked at
+    # `/agent` (Dockerfile `COPY agent/ /agent/`), so it must be absolute here —
+    # else ai_review fails with `chdir agent: no such file or directory`.
+    AGENT_DIR: /agent
+    # Git commit author/committer identity. dark-factory's per-prompt `git commit`
+    # needs a user.name/user.email; the docker backend gets it from the mounted
+    # ~/.claude-yolo/.gitconfig, but backend:local has no mount (and
+    # `gh auth setup-git` only installs the push credential helper, not the
+    # identity) → commit fails with "Author identity unknown". git honors these
+    # env vars over config, so set them here.
+    GIT_AUTHOR_NAME: github-dark-factory-agent
+    GIT_AUTHOR_EMAIL: github-dark-factory-agent@users.noreply.github.com
+    GIT_COMMITTER_NAME: github-dark-factory-agent
+    GIT_COMMITTER_EMAIL: github-dark-factory-agent@users.noreply.github.com
     # PER-CLUSTER — fill these from the cluster overlay:
     # APP_ID: ""
     # INSTALLATION_ID: ""

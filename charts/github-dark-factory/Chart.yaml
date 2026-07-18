@@ -5,7 +5,7 @@ description: >-
   one agent Config CR (dark-factory implementer). Application layer on top of the
   core `agent` framework chart; renders via the `common` library chart.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:
