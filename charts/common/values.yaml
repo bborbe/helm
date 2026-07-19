@@ -1,0 +1,4 @@
+# common is a type:library chart — it renders nothing on its own and has no
+# configurable values. This file exists only so `ct lint` (chart-testing) can
+# process the chart without erroring on a missing values.yaml.
+{}

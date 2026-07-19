@@ -11,7 +11,7 @@ home: https://github.com/bborbe/helm
 sources:
   - https://github.com/bborbe/helm
 maintainers:
-  - name: Benjamin Borbe
+  - name: bborbe
 dependencies:
   - name: common
     version: 0.1.0
