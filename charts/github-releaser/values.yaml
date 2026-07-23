@@ -1,0 +1,102 @@
+# github-releaser values.
+#
+# APPLICATION chart. Ships ONE GitHub watcher StatefulSet (github-release-watcher)
+# + ONE agent Config CR (github-releaser-agent), rendered through the `common`
+# library chart. The watcher emits github-release tasks; the agent releases.
+#
+# PREREQUISITE: install the core `agent` chart FIRST. It owns the
+# configs.agent.benjamin-borbe.de CRD (plus the task controller + executor).
+# This chart emits a Config CR of that kind but does NOT ship the CRD.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VALUES CONTRACT
+#   * This file carries the unit-INVARIANT defaults.
+#   * The per-cluster VARIABLE bits are left empty/placeholder below and MUST be
+#     supplied by the cluster's values overlay (or --set), marked `# PER-CLUSTER`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PER-CLUSTER — target namespace. Required (no default; the cluster owns it).
+namespace: ""
+
+# PER-CLUSTER — stage label ("dev"/"prod"). Falls back to `namespace` when empty.
+stage: ""
+
+image:
+  # PER-CLUSTER — registry host. Empty default forces the overlay to set it.
+  registry: ""
+  pullPolicy: IfNotPresent
+  # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
+  pullSecrets: []
+
+# PER-CLUSTER — node affinity passthrough (quant pins pods to node_type=<stage>).
+affinity: {}
+
+# PER-CLUSTER — extra pod annotation to force a rollout (value of RANDOM).
+rolloutNonce: ""
+
+# ── Watcher (unit-invariant defaults) ───────────────────────────────────────
+watcher:
+  enabled: true
+  name: github-release-watcher
+  image: bborbe/github-release-watcher
+  # tag: empty => Chart.appVersion (pinned semver; no Keel).
+  existingSecret: github-release-watcher
+  logLevel: "2"
+  storage:
+    size: 100Mi
+    # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
+    storageClassName: ""
+  env:
+    # Unit-invariant: cursor tracks last-seen release; poll every 10m.
+    OWNER: bborbe
+    POLL_INTERVAL: 10m
+    CURSOR_PATH: /data/cursor.json
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""            # GitHub App id
+    # INSTALLATION_ID: ""   # GitHub App installation id
+    # REPO_ALLOWLIST: ""    # repos this unit may act on
+    # KAFKA_BROKERS: ""     # e.g. my-cluster-kafka-bootstrap.strimzi:9092
+    # TOPIC_PREFIX: ""      # e.g. develop / master
+    # STAGE: ""             # dev / prod
+    # SENTRY_PROXY: ""      # e.g. http://sentry-proxy.<ns>.svc.cluster.local:9090
+
+# ── Agent (unit-invariant defaults) ─────────────────────────────────────────
+agent:
+  enabled: true
+  name: github-releaser-agent
+  assignee: github-releaser-agent
+  image: bborbe/github-releaser-agent
+  # tag: empty => Chart.appVersion.
+  existingSecret: github-releaser-agent
+  taskTypes:
+    - github-release
+    - healthcheck
+  triggerPhases:
+    - planning
+    - execution
+    - ai_review
+  triggerStatuses:
+    - in_progress
+  heartbeat: 5m
+  concurrency: 3
+  priorityValue: 500
+  # Release agent (one claude session per release): light, matches the current
+  # maintainer deploy. 500m / 1Gi.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 5Gi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 5Gi
+  env:
+    CLAUDE_CONFIG_DIR: /home/claude/.claude
+    ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+    ANTHROPIC_MODEL: MiniMax-M2.7-highspeed
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""
+    # INSTALLATION_ID: ""
+    # REPO_ALLOWLIST: ""
+    # TOPIC_PREFIX: ""

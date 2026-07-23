@@ -1,0 +1,19 @@
+apiVersion: v2
+name: go-version-notifier
+description: >-
+  go-version-notifier business-unit chart — one watcher StatefulSet (go-version-watcher)
+  that polls go.dev for new stable Go releases and emits a go-version-update task
+  per release. NON-GitHub watcher (no GitHub App, no PEM_KEY secret). Watcher-only
+  (no agent Config CR). Renders via the `common` library chart.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: bborbe
+dependencies:
+  - name: common
+    version: 0.1.1
+    repository: "file://../common"

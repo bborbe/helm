@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "github-build-fixer values",
+  "description": "Schema guarding the values contract. Defends against silently-ignored config by rejecting unknown keys and typing the enums. Watcher-only chart — the GitHub-auth path requires an existing-secret name for the watcher.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["watcher"],
+  "properties": {
+    "namespace": {
+      "type": "string",
+      "description": "PER-CLUSTER target namespace. Required at install time (validated by common.namespace)."
+    },
+    "stage": {
+      "type": "string",
+      "description": "PER-CLUSTER stage label; disambiguates the cluster-scoped PriorityClass."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "registry": { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
+        "pullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": { "name": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "affinity": { "type": "object" },
+    "rolloutNonce": { "type": "string" },
+    "watcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "name", "image", "existingSecret"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string", "minLength": 1 },
+        "image": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" },
+        "existingSecret": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of an existing Secret holding key PEM_KEY. Required — the chart never creates it."
+        },
+        "logLevel": { "type": "string" },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "size": { "type": "string" },
+            "storageClassName": { "type": "string" }
+          }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "kafkaUser": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "cluster": { "type": "string" },
+            "strimziNamespace": { "type": "string" },
+            "userName": { "type": "string" },
+            "clientSecret": { "type": "string" },
+            "caCertSecret": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

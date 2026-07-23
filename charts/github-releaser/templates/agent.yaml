@@ -1,0 +1,3 @@
+{{- if .Values.agent.enabled }}
+{{ include "common.agent" (dict "root" $ "unit" .Values.agent) }}
+{{- end }}

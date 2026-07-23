@@ -22,6 +22,9 @@ unit keys:
   image           (required) repo only; registry from .root.Values.image.registry
   tag             (optional) default .root.Chart.AppVersion
   existingSecret  (optional) default = name; holds key PEM_KEY
+  githubAuth      (optional) default true; set false for a NON-GitHub watcher
+                  (e.g. go-version polls go.dev) — skips the PEM_KEY secretKeyRef
+                  entirely so the pod needs no Secret
   logLevel        (optional) default "2"; feeds -v=<n> arg (NOT an env var)
   storage.size            (optional) default 100Mi
   storage.storageClassName(optional) empty => cluster default StorageClass
@@ -35,6 +38,10 @@ unit keys:
 {{- $name := $unit.name -}}
 {{- $ns := include "common.namespace" (dict "root" $root) -}}
 {{- $existingSecret := $unit.existingSecret | default $name -}}
+{{/* githubAuth: default true, but `| default true` mis-fires on an explicit
+     false (sprig treats false as empty), so read it via hasKey instead. */}}
+{{- $githubAuth := true -}}
+{{- if hasKey $unit "githubAuth" -}}{{- $githubAuth = $unit.githubAuth -}}{{- end -}}
 {{- $storage := $unit.storage | default dict -}}
 {{- $ku := $unit.kafkaUser | default dict -}}
 ---
@@ -98,13 +105,16 @@ spec:
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
+            {{- if $githubAuth }}
             # GitHub App private key from an EXISTING secret (by name). The chart
-            # never creates this secret — provision it out of band.
+            # never creates this secret — provision it out of band. Skipped when
+            # githubAuth=false (non-GitHub watcher, e.g. go-version).
             - name: PEM_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $existingSecret }}
                   key: PEM_KEY
+            {{- end }}
           ports:
             - containerPort: 9090
               name: http
