@@ -82,3 +82,7 @@ helm template . --set stage=dev --set namespace=dev --set image.registry=docker.
 `charts/*/charts/` (the unpacked/tgz dependency copies) is git-ignored, but the
 `Chart.lock` files are **committed** so the pinned `common` version is
 reproducible. Run `helm dependency build` after changing a `dependencies:` block.
+
+## License
+
+BSD 2-Clause License. See [LICENSE](LICENSE).
