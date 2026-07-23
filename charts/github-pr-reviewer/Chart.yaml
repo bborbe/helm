@@ -1,11 +1,12 @@
 apiVersion: v2
-name: github-dark-factory
+name: github-pr-reviewer
 description: >-
-  github-dark-factory business-unit chart — one GitHub watcher StatefulSet plus
-  one agent Config CR (dark-factory implementer). Application layer on top of the
-  core `agent` framework chart; renders via the `common` library chart.
+  github-pr-reviewer business-unit chart — one GitHub watcher StatefulSet
+  (github-pr-watcher) plus one agent Config CR (github-pr-review-agent). The
+  watcher emits pr-review tasks; the agent consumes them. Application layer on
+  top of the core `agent` framework chart; renders via the `common` library chart.
 type: application
-version: 0.1.1
+version: 0.1.0
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:

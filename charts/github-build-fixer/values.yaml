@@ -1,0 +1,62 @@
+# github-build-fixer values.
+#
+# APPLICATION chart. Ships ONE GitHub watcher StatefulSet (github-build-watcher),
+# rendered through the `common` library chart. Watcher-only — no agent Config CR,
+# so this chart does NOT require the core `agent` chart's CRD.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VALUES CONTRACT
+#   * This file carries the unit-INVARIANT defaults — the bits that are the same
+#     no matter which cluster/stage the unit runs on.
+#   * The per-cluster VARIABLE bits are left empty/placeholder below and MUST be
+#     supplied by the cluster's values overlay (or --set). They are called out
+#     inline with `# PER-CLUSTER`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PER-CLUSTER — target namespace. Required (no default; the cluster owns it).
+namespace: ""
+
+# PER-CLUSTER — stage label ("dev"/"prod"). Falls back to `namespace` when empty.
+stage: ""
+
+image:
+  # PER-CLUSTER — registry host. Empty default forces the overlay to set it.
+  registry: ""
+  pullPolicy: IfNotPresent
+  # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
+  pullSecrets: []
+
+# PER-CLUSTER — node affinity passthrough (quant pins pods to node_type=<stage>).
+affinity: {}
+
+# PER-CLUSTER — extra pod annotation to force a rollout (value of RANDOM).
+rolloutNonce: ""
+
+# ── Watcher (unit-invariant defaults) ───────────────────────────────────────
+watcher:
+  enabled: true
+  name: github-build-watcher
+  image: bborbe/github-build-watcher
+  # tag: empty => Chart.appVersion (pinned semver; no Keel).
+  # Existing Secret (by name) holding key PEM_KEY (GitHub App private key).
+  # The chart NEVER creates this secret — provision it out of band.
+  existingSecret: github-build-watcher
+  logLevel: "2"
+  storage:
+    size: 100Mi
+    # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
+    storageClassName: ""
+  env:
+    # Task emission defaults (unit-invariant): one build-fix task per red build.
+    TASK_ASSIGNEE: build-fix-agent
+    TASK_STATUS: in_progress
+    TASK_PHASE: todo
+    TASK_SUFFIX: ""
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""            # GitHub App id
+    # INSTALLATION_ID: ""   # GitHub App installation id
+    # REPO_ALLOWLIST: ""    # repos this unit may act on
+    # KAFKA_BROKERS: ""     # e.g. my-cluster-kafka-bootstrap.strimzi:9092
+    # TOPIC_PREFIX: ""      # e.g. develop / master
+    # STAGE: ""             # dev / prod
+    # SENTRY_PROXY: ""      # e.g. http://sentry-proxy.<ns>.svc.cluster.local:9090

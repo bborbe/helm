@@ -1,0 +1,19 @@
+apiVersion: v2
+name: github-build-fixer
+description: >-
+  github-build-fixer business-unit chart — one GitHub watcher StatefulSet
+  (github-build-watcher) that polls default-branch CI and emits a build-fix task
+  per red build. Watcher-only (no agent Config CR). Renders via the `common`
+  library chart.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: bborbe
+dependencies:
+  - name: common
+    version: 0.1.1
+    repository: "file://../common"
