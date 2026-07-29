@@ -47,8 +47,18 @@ watcher:
     # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
     storageClassName: ""
   env:
-    # Unit-invariant: only PRs from trusted authors trigger a review task.
-    TRUSTED_AUTHORS: bborbe
+    # Unit-invariant: PRs from trusted authors are auto-processed; everyone
+    # else is routed to human_review (the TrustGate, not a block).
+    # Exact case-sensitive login match — App bots use the `<slug>[bot]` form the
+    # watcher sees, NOT the REST API's `app/<slug>` rendering.
+    #   ben-s-go-updater[bot] — github-update-go-agent. Trusted because its PRs
+    #   are mechanical (go.mod/go.sum + CHANGELOG bullet, no code), the repo gate
+    #   runs twice in-pod plus CI on the PR, and it is our own App. Trust here
+    #   enables bot *review* only; merging still requires a human click until
+    #   [[Auto-Merge Trust-Gated PRs]] ships.
+    # Other agent bots (dark-factory, build-fixer) stay untrusted — their PRs
+    # carry real code changes, so this risk argument does not transfer.
+    TRUSTED_AUTHORS: bborbe,ben-s-go-updater[bot]
     TASK_SUFFIX: ""
     # PER-CLUSTER — fill these from the cluster overlay:
     # APP_ID: ""            # GitHub App id
