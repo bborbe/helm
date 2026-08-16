@@ -1,0 +1,85 @@
+# github-update-go-watcher values.
+#
+# APPLICATION chart. Ships ONE GitHub watcher StatefulSet
+# (github-update-go-watcher), rendered through the `common` library chart. The
+# watcher scans an owner's repos for a `go` directive behind the latest stable
+# Go release and emits github-update-go tasks.
+#
+# NO AGENT HERE. The consuming agent (assignee github-update-go-agent) already
+# ships with the core `agent` chart as Config `agent-github-update-go`. This is
+# the deliberate difference from github-pr-reviewer, which bundles both.
+#
+# PREREQUISITE: install the core `agent` chart FIRST — it owns the
+# configs.agent.benjamin-borbe.de CRD, the task controller, the executor, and
+# the agent that drains what this watcher files.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SCOPE IS TWO GATES, BOTH REQUIRED
+#   1. REPO_ALLOWLIST below (operator-controlled scope), AND
+#   2. the repo's own .maintainer.yaml sets `goUpdate.autoUpdate: true`.
+# Absent file, absent section, and absent key all read as false. That is a trust
+# gate, so a freshly deployed watcher matches ZERO repos until the flag has been
+# seeded — an empty first run is correct behaviour, not a fault.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VALUES CONTRACT
+#   * This file carries the unit-INVARIANT defaults.
+#   * The per-cluster VARIABLE bits are left empty/placeholder below and MUST be
+#     supplied by the cluster's values overlay (or --set), marked `# PER-CLUSTER`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PER-CLUSTER — target namespace. Required (no default; the cluster owns it).
+namespace: ""
+
+# PER-CLUSTER — stage label ("dev"/"prod"). Falls back to `namespace` when empty.
+stage: ""
+
+image:
+  # PER-CLUSTER — registry host. Empty default forces the overlay to set it.
+  registry: ""
+  pullPolicy: IfNotPresent
+  # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
+  pullSecrets: []
+
+# PER-CLUSTER — node affinity passthrough (quant pins pods to node_type=<stage>).
+affinity: {}
+
+# PER-CLUSTER — extra pod annotation to force a rollout (value of RANDOM).
+rolloutNonce: ""
+
+# ── Watcher (unit-invariant defaults) ───────────────────────────────────────
+watcher:
+  enabled: true
+  name: github-update-go-watcher
+  image: bborbe/github-update-go-watcher
+  # tag: empty => Chart.appVersion (pinned semver; no Keel).
+  existingSecret: github-update-go-watcher
+  logLevel: "2"
+  storage:
+    # Holds cursor.json only — the per-repo map of already-reported HEAD SHAs.
+    # Losing it costs one redundant scan, never correctness: a corrupt file is
+    # renamed to cursor.json.corrupt and the cycle cold-starts, and the emitted
+    # task_identifier is a deterministic UUID5 so downstream dedup absorbs the
+    # repeat.
+    size: 100Mi
+    # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
+    storageClassName: ""
+  env:
+    # Persisted-memory path. Must sit on the PVC above, not the container fs,
+    # or every restart re-files the whole fleet.
+    CURSOR_PATH: /data/cursor.json
+    # Layer 1 (go-version-watcher) already detects new stable releases; this
+    # poll is the belt-and-braces path that also catches repos which fell behind
+    # without a release event. 10m is well inside GitHub's rate budget for the
+    # ~100-repo scan this performs.
+    POLL_INTERVAL: 10m
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # OWNER: ""             # GitHub owner / org to scan, e.g. bborbe
+    # APP_ID: ""            # GitHub App id
+    # INSTALLATION_ID: ""   # GitHub App installation id
+    # REPO_ALLOWLIST: ""    # gate 1 of 2 — repos this unit may act on
+    # KAFKA_BROKERS: ""     # e.g. my-cluster-kafka-bootstrap.strimzi:9092
+    # TOPIC_PREFIX: ""      # e.g. develop / master
+    # STAGE: ""             # dev / prod — stamped on every emitted task
+    # SENTRY_PROXY: ""      # e.g. http://sentry-proxy.<ns>.svc.cluster.local:9090
