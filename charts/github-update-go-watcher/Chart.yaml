@@ -1,0 +1,29 @@
+apiVersion: v2
+name: github-update-go-watcher
+description: >-
+  github-update-go-watcher business-unit chart — one GitHub watcher StatefulSet
+  that scans an owner's repos for a lagging `go` directive and emits
+  github-update-go tasks. Application layer on top of the core `agent` framework
+  chart; renders via the `common` library chart.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: bborbe
+dependencies:
+  - name: common
+    version: 0.1.1
+    repository: "file://../common"
+annotations:
+  # WATCHER ONLY — unlike github-pr-reviewer, this chart ships NO agent Config
+  # CR. The consuming agent (assignee github-update-go-agent) is already
+  # deployed by the core `agent` chart's `agents:` list, as Config
+  # `agent-github-update-go`. Adding one here would put two Configs on the same
+  # assignee.
+  artifacthub.io/prerequisites: |
+    - Requires the core `agent` chart (owns the configs.agent.benjamin-borbe.de
+      CRD, the agent-task-controller, and the agent-task-executor), which also
+      supplies the github-update-go-agent that consumes this watcher's tasks.
