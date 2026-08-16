@@ -61,6 +61,7 @@
         },
         "kafkaUser": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "enabled": { "type": "boolean" },
             "cluster": { "type": "string" },

@@ -54,7 +54,12 @@ watcher:
   name: github-update-go-watcher
   image: bborbe/github-update-go-watcher
   # tag: empty => Chart.appVersion (pinned semver; no Keel).
-  existingSecret: github-update-go-watcher
+  # Named for the AGENT, not this watcher, and that is deliberate: the Secret
+  # already exists in-cluster with PEM_KEY + SENTRY_DSN for the same GitHub App,
+  # so the watcher reuses it rather than duplicating a PEM. There is no Secret
+  # called `github-update-go-watcher` — defaulting to that name would leave an
+  # unoverridden install hanging on a missing PEM_KEY.
+  existingSecret: github-update-go-agent
   logLevel: "2"
   storage:
     # Holds cursor.json only — the per-repo map of already-reported HEAD SHAs.
