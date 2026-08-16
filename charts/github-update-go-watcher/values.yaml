@@ -55,10 +55,13 @@ watcher:
   image: bborbe/github-update-go-watcher
   # tag: empty => Chart.appVersion (pinned semver; no Keel).
   # Named for the AGENT, not this watcher, and that is deliberate: the Secret
-  # already exists in-cluster with PEM_KEY + SENTRY_DSN for the same GitHub App,
-  # so the watcher reuses it rather than duplicating a PEM. There is no Secret
-  # called `github-update-go-watcher` — defaulting to that name would leave an
+  # already exists in-cluster with the PEM for the same GitHub App, so the
+  # watcher reuses it rather than duplicating a PEM. There is no Secret called
+  # `github-update-go-watcher` — defaulting to that name would leave an
   # unoverridden install hanging on a missing PEM_KEY.
+  # Only PEM_KEY is consumed: common.watcher does not wire SENTRY_DSN, so the
+  # DSN this Secret also carries is inert here (SENTRY_PROXY below is the only
+  # Sentry wiring watchers get today).
   existingSecret: github-update-go-agent
   logLevel: "2"
   storage:
