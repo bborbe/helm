@@ -35,6 +35,9 @@ unit keys:
   resources       (optional) -> spec.resources
   priorityValue   (optional) default 500
   concurrency     (optional) default 1 -> ResourceQuota pods
+  maxConcurrentJobs (optional) -> Config.spec.maxConcurrentJobs (dispatcher-side
+                    gate; when omitted the executor creates a Job per pending task
+                    regardless of capacity, so match this to concurrency).
   volumeMountPath (optional) mounts a PVC of storageSize (default 1Gi)
 ================================================================================
 */}}
@@ -61,6 +64,9 @@ spec:
   image: {{ include "common.image" (dict "root" $root "unit" $unit) | quote }}
   heartbeat: {{ $unit.heartbeat | default "5m" | quote }}
   secretName: {{ required "agent.existingSecret (or agent.name) is required for spec.secretName" $existingSecret }}
+  {{- with $unit.maxConcurrentJobs }}
+  maxConcurrentJobs: {{ . }}
+  {{- end }}
   {{- with $unit.volumeMountPath }}
   volumeClaim: {{ $name }}
   volumeMountPath: {{ . | quote }}

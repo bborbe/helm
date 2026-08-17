@@ -119,6 +119,7 @@
         },
         "heartbeat": { "type": "string" },
         "concurrency": { "type": "integer", "minimum": 1 },
+        "maxConcurrentJobs": { "type": "integer", "minimum": 0 },
         "priorityValue": { "type": "integer" },
         "volumeMountPath": { "type": "string" },
         "storageSize": { "type": "string" },
