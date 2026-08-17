@@ -89,6 +89,11 @@ agent:
     - in_progress
   heartbeat: 5m
   concurrency: 3
+  # Dispatcher-side gate: cap concurrent review Jobs at 1 regardless of the 3-pod
+  # quota. Decision 2026-08-17 (see [[Deploy agent-task-executor v0.5.1 and Set
+  # maxConcurrentJobs]]): all agents capped at 1 after the 2026-08-14 bulk-enqueue
+  # outage (84 tasks, quota-burn loop, 17h silence).
+  maxConcurrentJobs: 1
   priorityValue: 500
   # Review-only agent (one claude session per PR): far lighter than the
   # dark-factory implementer. 500m / 1Gi matches the current maintainer deploy.

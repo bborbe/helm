@@ -82,6 +82,10 @@ agent:
     - in_progress
   heartbeat: 5m
   concurrency: 1
+  # Dispatcher-side gate, matches the 1-pod quota. Decision 2026-08-17 (see
+  # [[Deploy agent-task-executor v0.5.1 and Set maxConcurrentJobs]]): all agents
+  # capped at 1 after the 2026-08-14 bulk-enqueue outage.
+  maxConcurrentJobs: 1
   priorityValue: 500
   # Heavier than a pr-reviewer (which is review-only): the implementer runs FOUR
   # sequential claude sessions (generate → execute → verify → ai_review), each a
