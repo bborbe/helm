@@ -6,7 +6,7 @@ description: >-
   watcher emits pr-review tasks; the agent consumes them. Application layer on
   top of the core `agent` framework chart; renders via the `common` library chart.
 type: application
-version: 0.2.1
+version: 0.2.2
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:
