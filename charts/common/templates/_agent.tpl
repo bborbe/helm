@@ -67,6 +67,9 @@ spec:
   {{- with $unit.maxConcurrentJobs }}
   maxConcurrentJobs: {{ . }}
   {{- end }}
+  {{- with $unit.zombieJobTimeoutSeconds }}
+  zombieJobTimeoutSeconds: {{ . }}
+  {{- end }}
   {{- with $unit.volumeMountPath }}
   volumeClaim: {{ $name }}
   volumeMountPath: {{ . | quote }}

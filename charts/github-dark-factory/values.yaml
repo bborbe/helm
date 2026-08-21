@@ -86,6 +86,11 @@ agent:
   # [[Deploy agent-task-executor v0.5.1 and Set maxConcurrentJobs]]): all agents
   # capped at 1 after the 2026-08-14 bulk-enqueue outage.
   maxConcurrentJobs: 1
+  # Job activeDeadlineSeconds (executor zombieJobTimeoutSeconds), raised from the
+  # 1800s default to 5400s (90m) 2026-08-21: real multi-prompt implementer runs
+  # (generation ~7m + per-prompt execute 10-15m + fix loops) exceed 30m and were
+  # killed mid-execution. Matches the agent's own lifecycleTimeout 90m default.
+  zombieJobTimeoutSeconds: 5400
   priorityValue: 500
   # Heavier than a pr-reviewer (which is review-only): the implementer runs FOUR
   # sequential claude sessions (generate → execute → verify → ai_review), each a
