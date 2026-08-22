@@ -59,6 +59,11 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
+        "secretEnv": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of env var name -> key in existingSecret to mount as a secretKeyRef env var (e.g. WEBHOOK_SECRET)."
+        },
         "kafkaUser": {
           "type": "object",
           "properties": {

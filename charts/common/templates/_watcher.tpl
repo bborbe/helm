@@ -29,6 +29,8 @@ unit keys:
   storage.size            (optional) default 100Mi
   storage.storageClassName(optional) empty => cluster default StorageClass
   env             (optional) plain container env map
+  secretEnv       (optional) map env var name -> key in existingSecret; mounted
+                  as a secretKeyRef env var
   kafkaUser.enabled (optional) mTLS cert mounts (see common.kafkauser)
 ================================================================================
 */}}
@@ -114,6 +116,15 @@ spec:
                 secretKeyRef:
                   name: {{ $existingSecret }}
                   key: PEM_KEY
+            {{- end }}
+            {{- range $k, $v := $unit.secretEnv }}
+            # secretEnv: map of env var name -> key in the existing Secret,
+            # mounted as a secretKeyRef env var (e.g. WEBHOOK_SECRET).
+            - name: {{ $k }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $existingSecret }}
+                  key: {{ $v }}
             {{- end }}
           ports:
             - containerPort: 9090
