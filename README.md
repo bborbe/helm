@@ -3,6 +3,8 @@
 Helm chart monorepo, **one application chart per business unit** on top of a
 shared `common` **library chart**.
 
+Requires Helm v3 (see `Makefile` for the pinned version).
+
 ```
 helm/
 ├── charts/
