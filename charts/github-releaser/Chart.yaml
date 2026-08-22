@@ -6,7 +6,7 @@ description: >-
   watcher emits github-release tasks; the agent releases. Application layer on top
   of the core `agent` framework chart; renders via the `common` library chart.
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:
