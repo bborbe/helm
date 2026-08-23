@@ -53,8 +53,8 @@ watcher:
     storageClassName: ""
   env:
     # Unit-invariant: cursor tracks last-emitted (short-id, date) per issue;
-    # poll the Sentry org daily.
-    POLL_INTERVAL: 24h
+    # scan on wall-clock via a strict 6-field cron expression (UTC in the pod).
+    CRON_EXPRESSION: 0 0 0 * * ?
     CURSOR_PATH: /data/cursor.json
     SENTRY_URL: https://bborbe.sentry.io
     SENTRY_ORG: bborbe

@@ -27,7 +27,7 @@ creates or embeds the secret).
 
 **Invariant defaults** (shipped in `values.yaml`; identical on every cluster):
 `watcher.{name,image,githubAuth,existingSecret}`,
-`watcher.env.{POLL_INTERVAL,CURSOR_PATH,SENTRY_URL,SENTRY_ORG,SENTRY_PROJECTS,TASK_STATUS,TASK_PHASE,TASK_SUFFIX}`.
+`watcher.env.{CRON_EXPRESSION,CURSOR_PATH,SENTRY_URL,SENTRY_ORG,SENTRY_PROJECTS,TASK_STATUS,TASK_PHASE,TASK_SUFFIX}`.
 
 **Per-cluster (must be supplied by the cluster overlay / `--set`):**
 

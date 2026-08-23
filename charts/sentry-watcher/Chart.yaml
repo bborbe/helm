@@ -8,7 +8,7 @@ description: >-
   secretEnv). Watcher-only (no agent Config CR). Renders via the `common`
   library chart.
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:
