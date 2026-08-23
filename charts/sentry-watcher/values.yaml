@@ -58,7 +58,6 @@ watcher:
     CURSOR_PATH: /data/cursor.json
     SENTRY_URL: https://bborbe.sentry.io
     SENTRY_ORG: bborbe
-    SENTRY_STATS_PERIOD: 24h
     SENTRY_PROJECTS: hell,nuke-dev,nuke-prod,quant
     TASK_STATUS: in_progress
     TASK_PHASE: planning
