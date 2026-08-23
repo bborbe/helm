@@ -1,0 +1,21 @@
+apiVersion: v2
+name: sentry-watcher
+description: >-
+  sentry-watcher business-unit chart — one watcher StatefulSet (sentry-watcher)
+  that polls the bborbe Sentry org for unresolved issues with activity in the
+  last 24h and emits one sentry-issue-analyzer task per (short-id, date). NON-
+  GitHub watcher (no GitHub App, no PEM_KEY secret; SENTRY_API_TOKEN via
+  secretEnv). Watcher-only (no agent Config CR). Renders via the `common`
+  library chart.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: bborbe
+dependencies:
+  - name: common
+    version: 0.1.3
+    repository: "file://../common"

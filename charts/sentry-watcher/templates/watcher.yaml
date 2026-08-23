@@ -1,0 +1,6 @@
+{{- if .Values.watcher.enabled }}
+{{ include "common.watcher" (dict "root" $ "unit" .Values.watcher) }}
+{{- if (.Values.watcher.kafkaUser | default dict).enabled }}
+{{ include "common.kafkauser" (dict "root" $ "unit" .Values.watcher) }}
+{{- end }}
+{{- end }}
