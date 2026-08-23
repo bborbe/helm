@@ -8,7 +8,13 @@ description: >-
   secretEnv). Watcher-only (no agent Config CR). Renders via the `common`
   library chart.
 type: application
-version: 0.1.1
+annotations:
+  artifacthub.io/breaking: |-
+    Renames watcher.env.POLL_INTERVAL to CRON_EXPRESSION and changes the
+    schedule semantics from "every 24h since pod start" to a fixed wall-clock
+    cron expression (default daily 00:00Z). Deployments setting POLL_INTERVAL
+    must switch to CRON_EXPRESSION.
+version: 0.2.0
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:
