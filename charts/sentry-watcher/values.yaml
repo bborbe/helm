@@ -1,0 +1,74 @@
+# sentry-watcher values.
+#
+# APPLICATION chart. Ships ONE watcher StatefulSet (sentry-watcher), rendered
+# through the `common` library chart. Watcher-only — no agent Config CR.
+#
+# NON-GitHub watcher: polls the bborbe Sentry org REST API, NOT the GitHub API.
+# It has no GitHub App and no PEM_KEY secret, so `watcher.githubAuth: false`
+# skips the PEM_KEY secretKeyRef that `common.watcher` injects by default.
+# Without this the pod would hang Pending on a missing Secret ref. The Sentry
+# API token is supplied per-cluster via `watcher.secretEnv` (env var ->
+# key in the existing `sentry-watcher` Secret, teamvault-rendered out of band).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VALUES CONTRACT
+#   * This file carries the unit-INVARIANT defaults.
+#   * The per-cluster VARIABLE bits are left empty/placeholder below and MUST be
+#     supplied by the cluster's values overlay (or --set), marked `# PER-CLUSTER`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PER-CLUSTER — target namespace. Required (no default; the cluster owns it).
+namespace: ""
+
+# PER-CLUSTER — stage label ("dev"/"prod"). Falls back to `namespace` when empty.
+stage: ""
+
+image:
+  # PER-CLUSTER — registry host. Empty default forces the overlay to set it.
+  registry: ""
+  pullPolicy: IfNotPresent
+  # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
+  pullSecrets: []
+
+# PER-CLUSTER — node affinity passthrough (quant pins pods to node_type=<stage>).
+affinity: {}
+
+# PER-CLUSTER — extra pod annotation to force a rollout (value of RANDOM).
+rolloutNonce: ""
+
+# ── Watcher (unit-invariant defaults) ───────────────────────────────────────
+watcher:
+  enabled: true
+  name: sentry-watcher
+  image: bborbe/sentry-watcher
+  # tag: empty => Chart.appVersion (pinned semver; no Keel).
+  # NON-GitHub watcher: no PEM_KEY secret. This skips the secretKeyRef entirely.
+  githubAuth: false
+  # PER-CLUSTER — existing Secret holding SENTRY_API_TOKEN (teamvault-rendered).
+  existingSecret: sentry-watcher
+  logLevel: "2"
+  storage:
+    size: 100Mi
+    # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
+    storageClassName: ""
+  env:
+    # Unit-invariant: cursor tracks last-emitted (short-id, date) per issue;
+    # poll the Sentry org daily.
+    POLL_INTERVAL: 24h
+    CURSOR_PATH: /data/cursor.json
+    SENTRY_URL: https://bborbe.sentry.io
+    SENTRY_ORG: bborbe
+    SENTRY_STATS_PERIOD: 24h
+    SENTRY_PROJECTS: hell,nuke-dev,nuke-prod,quant
+    TASK_STATUS: in_progress
+    TASK_PHASE: planning
+    TASK_SUFFIX: ""
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # KAFKA_BROKERS: ""     # e.g. my-cluster-kafka-bootstrap.strimzi:9092
+    # TOPIC_PREFIX: ""      # e.g. develop / master
+    # STAGE: ""             # dev / prod
+    # TARGET_VAULT: ""      # e.g. personal (materialize into Personal vault)
+    # TASK_ASSIGNEE: ""     # e.g. sentry-issue-analyzer (agent)
+  # PER-CLUSTER — key name in the existing Secret holding the token:
+  # secretEnv:
+  #   SENTRY_API_TOKEN: token

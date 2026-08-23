@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "sentry-watcher values",
+  "description": "Schema guarding the values contract. Defends against silently-ignored config by rejecting unknown keys and typing the enums. NON-GitHub watcher — no GitHub-auth secret (githubAuth false, no PEM_KEY); SENTRY_API_TOKEN is supplied per-cluster via `secretEnv` against the existing `sentry-watcher` Secret.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["watcher"],
+  "properties": {
+    "namespace": {
+      "type": "string",
+      "description": "PER-CLUSTER target namespace. Required at install time (validated by common.namespace)."
+    },
+    "stage": {
+      "type": "string",
+      "description": "PER-CLUSTER stage label; disambiguates the cluster-scoped PriorityClass."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "registry": { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
+        "pullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": { "name": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "affinity": { "type": "object" },
+    "rolloutNonce": { "type": "string" },
+    "watcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "name", "image"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string", "minLength": 1 },
+        "image": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" },
+        "githubAuth": {
+          "type": "boolean",
+          "description": "false for a non-GitHub watcher (skips the PEM_KEY secretKeyRef). Defaults true in common.watcher."
+        },
+        "existingSecret": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the existing Secret that `secretEnv` keys are read from. Defaults to the watcher name."
+        },
+        "logLevel": { "type": "string" },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "size": { "type": "string" },
+            "storageClassName": { "type": "string" }
+          }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "secretEnv": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of env var name -> key in the existing Secret, mounted as a secretKeyRef env var (e.g. SENTRY_API_TOKEN -> token)."
+        },
+        "kafkaUser": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "cluster": { "type": "string" },
+            "strimziNamespace": { "type": "string" },
+            "userName": { "type": "string" },
+            "clientSecret": { "type": "string" },
+            "caCertSecret": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
