@@ -29,6 +29,8 @@ creates or embeds the secret).
 `watcher.{name,image,githubAuth,existingSecret}`,
 `watcher.env.{CRON_EXPRESSION,CURSOR_PATH,SENTRY_URL,SENTRY_ORG,SENTRY_PROJECTS,TASK_STATUS,TASK_PHASE,TASK_SUFFIX}`.
 
+**Breaking (0.1.x → 0.2.0):** `watcher.env.POLL_INTERVAL` is **removed**, replaced by `CRON_EXPRESSION`. The schedule semantics change from "every 24h since pod start" to a fixed wall-clock cron expression (default `0 0 0 * * ?` = daily 00:00Z). Any overlay setting `POLL_INTERVAL` must switch to `CRON_EXPRESSION` — the old key is silently ignored.
+
 **Per-cluster (must be supplied by the cluster overlay / `--set`):**
 
 | Value | Notes |
