@@ -1,0 +1,30 @@
+apiVersion: v2
+name: security-review-agent
+description: >-
+  security-review-agent business-unit chart — one agent Config CR
+  (security-review-agent). Consumes security-review tasks (no watcher in v1 —
+  tasks are created manually via the security-review-trigger skill). Application
+  layer on top of the core `agent` framework chart; renders via the `common`
+  library chart.
+type: application
+version: 0.1.0
+appVersion: "0.6.0"
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: bborbe
+dependencies:
+  - name: common
+    version: 0.1.3
+    repository: "file://../common"
+annotations:
+  # PREREQUISITE: this chart does NOT ship the Config CRD. It emits
+  # `agent.benjamin-borbe.de/v1` Config objects owned + reconciled by the core
+  # `agent` chart (CRD + task controller + executor). Install the core `agent`
+  # chart FIRST; otherwise the Config CR here fails with "no matches for kind
+  # Config".
+  artifacthub.io/prerequisites: |
+    - Requires the core `agent` chart (owns the configs.agent.benjamin-borbe.de
+      CRD, the agent-task-controller, and the agent-task-executor). Install it
+      first.
