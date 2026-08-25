@@ -1,0 +1,77 @@
+# security-review-agent values.
+#
+# APPLICATION chart. Ships ONE agent Config CR (security-review-agent) rendered
+# through the `common` library chart. There is NO watcher in v1 — security-review
+# tasks are created manually via the security-review-trigger skill (the watcher
+# is iteration 2, per the parent goal's Non-goals).
+#
+# PREREQUISITE: install the core `agent` chart FIRST. It owns the
+# configs.agent.benjamin-borbe.de CRD (plus the task controller + executor).
+# This chart emits a Config CR of that kind but does NOT ship the CRD.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# VALUES CONTRACT
+#   * This file carries the unit-INVARIANT defaults.
+#   * The per-cluster VARIABLE bits are left empty/placeholder below and MUST be
+#     supplied by the cluster's values overlay (or --set), marked `# PER-CLUSTER`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PER-CLUSTER — target namespace. Required (no default; the cluster owns it).
+namespace: ""
+
+# PER-CLUSTER — stage label ("dev"/"prod"). Falls back to `namespace` when empty.
+stage: ""
+
+image:
+  # PER-CLUSTER — registry host. Empty default forces the overlay to set it.
+  registry: ""
+  pullPolicy: IfNotPresent
+  # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
+  pullSecrets: []
+
+# PER-CLUSTER — node affinity passthrough (quant pins pods to node_type=<stage>).
+affinity: {}
+
+# ── Agent (unit-invariant defaults) ─────────────────────────────────────────
+agent:
+  enabled: true
+  name: security-review-agent
+  assignee: security-reviewer-agent
+  image: bborbe/security-review-agent
+  # tag: empty => Chart.appVersion (v0.6.0).
+  existingSecret: security-review-agent
+  taskTypes:
+    - security-review
+    - healthcheck
+  triggerPhases:
+    - planning
+    - execution
+    - ai_review
+  triggerStatuses:
+    - in_progress
+  heartbeat: 5m
+  concurrency: 1
+  maxConcurrentJobs: 1
+  priorityValue: 500
+  # Review-only agent (one claude session per PR): far lighter than the
+  # dark-factory implementer. 500m / 1Gi matches the pr-reviewer agent.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 5Gi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 5Gi
+  env:
+    CLAUDE_CONFIG_DIR: /home/claude/.claude
+    ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+    ANTHROPIC_MODEL: MiniMax-M2.7-highspeed
+    REVIEW_MODE: selector
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""
+    # INSTALLATION_ID: ""
+    # REPO_ALLOWLIST: ""
+    # BOT_GITHUB_LOGIN: ""   # e.g. ben-s-security-review-agent[bot]
+    # TOPIC_PREFIX: ""
