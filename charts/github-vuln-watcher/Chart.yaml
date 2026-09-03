@@ -1,10 +1,11 @@
 apiVersion: v2
-name: github-update-go-watcher
+name: github-vuln-watcher
 description: >-
-  github-update-go-watcher business-unit chart — one GitHub watcher StatefulSet
-  that scans an owner's repos for a lagging `go` directive and emits
-  github-update-go tasks. Application layer on top of the core `agent` framework
-  chart; renders via the `common` library chart.
+  github-vuln-watcher business-unit chart — one GitHub watcher StatefulSet
+  that emits github-update-go tasks when a CVE is published against an
+  unchanged dependency (CI drifts red with no commit). Clones each consenting
+  repo and runs its own vuln gate. Application layer on top of the core
+  `agent` framework chart; renders via the `common` library chart.
 type: application
 version: 0.1.0
 appVersion: "0.1.0"

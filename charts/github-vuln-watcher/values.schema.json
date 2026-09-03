@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "github-vuln-watcher values",
+  "description": "Schema guarding the values contract. Defends against silently-ignored config by rejecting unknown keys and typing the enums. Watcher-only: unlike github-pr-reviewer this chart has no `agent` block, because the consuming agent ships with the core `agent` chart as Config agent-github-update-go.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["watcher"],
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Helm-injected. Not consumed by this chart, but must be declared: with additionalProperties false at the root, an undeclared Helm-injected key fails every render."
+    },
+    "common": {
+      "type": "object",
+      "description": "Helm-injected values block for the `common` dependency. Declared for the same reason as `global` — Helm adds a key named after each subchart, so omitting it makes the root schema reject the chart's own values."
+    },
+    "namespace": {
+      "type": "string",
+      "description": "PER-CLUSTER target namespace. Required at install time (validated by common.namespace)."
+    },
+    "stage": {
+      "type": "string",
+      "description": "PER-CLUSTER stage label; disambiguates the cluster-scoped PriorityClass."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "registry": { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
+        "pullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": { "name": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "affinity": { "type": "object" },
+    "rolloutNonce": { "type": "string" },
+    "watcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "name", "image", "existingSecret"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string", "minLength": 1 },
+        "image": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" },
+        "existingSecret": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of an existing Secret holding key PEM_KEY. Required — the chart never creates it. common.watcher wires PEM_KEY only; it does NOT inject SENTRY_DSN, so a DSN in this Secret is inert (true for every watcher on the platform, not just this one). In quant this is github-update-go-agent, reused so the watcher and the agent share one App credential."
+        },
+        "logLevel": { "type": "string" },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "size": { "type": "string" },
+            "storageClassName": { "type": "string" }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Full k8s resources block override; default 20m/20Mi req, 200m/100Mi lim. This watcher overrides to fit clone + vulncheck in-pod.",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "limits": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "kafkaUser": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "cluster": { "type": "string" },
+            "strimziNamespace": { "type": "string" },
+            "userName": { "type": "string" },
+            "clientSecret": { "type": "string" },
+            "caCertSecret": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
