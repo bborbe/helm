@@ -28,6 +28,9 @@ unit keys:
   logLevel        (optional) default "2"; feeds -v=<n> arg (NOT an env var)
   storage.size            (optional) default 100Mi
   storage.storageClassName(optional) empty => cluster default StorageClass
+  resources       (optional) full resources block override; default 20m/20Mi req,
+                  200m/100Mi lim (a gate-running watcher like github-vuln-watcher
+                  overrides to fit clone + vulncheck in-pod)
   env             (optional) plain container env map
   secretEnv       (optional) map env var name -> key in existingSecret; mounted
                   as a secretKeyRef env var
@@ -146,12 +149,16 @@ spec:
             initialDelaySeconds: 5
             timeoutSeconds: 5
           resources:
+            {{- with $unit.resources }}
+            {{- toYaml . | nindent 12 }}
+            {{- else }}
             requests:
               cpu: 20m
               memory: 20Mi
             limits:
               cpu: 200m
               memory: 100Mi
+            {{- end }}
           volumeMounts:
             - name: datadir
               mountPath: /data

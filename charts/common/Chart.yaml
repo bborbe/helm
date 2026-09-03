@@ -7,7 +7,7 @@ description: >-
   ResourceQuota), and `common.kafkauser` (Strimzi KafkaUser). Consumed via a
   `file://../common` dependency; it renders nothing on its own.
 type: library
-version: 0.1.3
+version: 0.1.4
 home: https://github.com/bborbe/helm
 sources:
   - https://github.com/bborbe/helm
