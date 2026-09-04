@@ -82,6 +82,11 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
+        "secretEnv": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of env var name -> key in existingSecret, mounted as a secretKeyRef env var (e.g. SENTRY_DSN)."
+        },
         "kafkaUser": {
           "type": "object",
           "additionalProperties": false,
