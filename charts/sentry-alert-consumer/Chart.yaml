@@ -1,0 +1,18 @@
+apiVersion: v2
+name: sentry-alert-consumer
+description: >-
+  sentry-alert-consumer business-unit chart — one stateless Deployment that
+  consumes the {branch}-raw-sentry-alert-input Kafka topic and emits one
+  sentry-issue-analyzer task per (issue-key, date), replacing the collector's
+  API fan-out as the Sentry pipeline trigger. No PVC, no secret, no GitHub App.
+  Standalone chart: the shared `common` library renders watcher StatefulSets
+  and agent Config CRs, not stateless Deployments, so this chart carries its
+  own Deployment + Service templates.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/bborbe/helm
+sources:
+  - https://github.com/bborbe/helm
+maintainers:
+  - name: bborbe
