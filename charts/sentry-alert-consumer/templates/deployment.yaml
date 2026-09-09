@@ -1,0 +1,71 @@
+{{- if .Values.consumer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.consumer.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.consumer.name }}
+  {{- with .Values.rolloutNonce }}
+  annotations:
+    random: {{ . | quote }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.consumer.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .Values.consumer.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.consumer.name }}
+      {{- with .Values.rolloutNonce }}
+      annotations:
+        random: {{ . | quote }}
+      {{- end }}
+    spec:
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: consumer
+          image: "{{ .Values.image.registry }}/{{ .Values.consumer.image }}:{{ .Values.consumer.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: KAFKA_BROKERS
+              value: {{ .Values.consumer.kafkaBrokers | quote }}
+            - name: KAFKA_TOPIC
+              value: {{ .Values.consumer.env.KAFKA_TOPIC | quote }}
+            - name: STAGE
+              value: {{ .Values.consumer.env.STAGE | default .Values.stage | default .Values.namespace | quote }}
+            - name: LISTEN
+              value: {{ .Values.consumer.env.LISTEN | default ":9090" | quote }}
+            - name: TOPIC_PREFIX
+              value: {{ .Values.consumer.env.TOPIC_PREFIX | quote }}
+            - name: TARGET_VAULT
+              value: {{ .Values.consumer.env.TARGET_VAULT | default "personal" | quote }}
+            - name: TASK_ASSIGNEE
+              value: {{ .Values.consumer.env.TASK_ASSIGNEE | default "sentry-analyzer-agent" | quote }}
+            - name: TASK_STATUS
+              value: {{ .Values.consumer.env.TASK_STATUS | default "in_progress" | quote }}
+            - name: TASK_PHASE
+              value: {{ .Values.consumer.env.TASK_PHASE | default "planning" | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.consumer.logLevel | default "2" | quote }}
+          ports:
+            - name: http
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+{{- end }}
