@@ -19,8 +19,12 @@ spec:
     metadata:
       labels:
         app: {{ .Values.consumer.name }}
-      {{- with .Values.rolloutNonce }}
       annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9090"
+        prometheus.io/scheme: http
+        prometheus.io/scrape: "true"
+      {{- with .Values.rolloutNonce }}
         random: {{ . | quote }}
       {{- end }}
     spec:
