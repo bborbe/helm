@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.consumer.name }}
+  annotations:
+    admin/port: '9090'
+    admin/path: ''
 spec:
   selector:
     app: {{ .Values.consumer.name }}
