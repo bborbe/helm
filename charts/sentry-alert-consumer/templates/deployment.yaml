@@ -61,6 +61,13 @@ spec:
               value: {{ .Values.consumer.env.TASK_PHASE | default "planning" | quote }}
             - name: LOG_LEVEL
               value: {{ .Values.consumer.logLevel | default "2" | quote }}
+            {{- range .Values.consumer.secretEnv }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .key }}
+            {{- end }}
           ports:
             - name: http
               containerPort: 9090

@@ -2,8 +2,9 @@
 #
 # APPLICATION chart. Ships ONE stateless Deployment (sentry-alert-consumer):
 # Kafka consumer → CreateTaskCommand emitter for the sentry-issue-analyzer
-# pipeline. No PVC, no secret (no Sentry token — the consumer never calls the
-# API), no GitHub App.
+# pipeline. No PVC, no GitHub App. One OPTIONAL secret: SENTRY_API_TOKEN, for the
+# per-event enrichment lookup (see consumer.secretEnv below). Omit it and the
+# consumer publishes derived-key tasks exactly as before.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # VALUES CONTRACT
@@ -54,3 +55,16 @@ consumer:
     TASK_ASSIGNEE: sentry-analyzer-agent
     TASK_STATUS: in_progress
     TASK_PHASE: planning
+
+  # PER-CLUSTER — secret-backed env vars, rendered as valueFrom.secretKeyRef.
+  # Each entry: {name: <env var>, secretName: <k8s Secret>, key: <Secret key>}.
+  #
+  # Prefer this over envFrom. secret/sentry-analyzer-agent also holds
+  # ANTHROPIC_AUTH_TOKEN, PEM_KEY and SENTRY_DSN, none of which this container
+  # needs — envFrom grants a whole secret, secretEnv grants one key.
+  #
+  # SENTRY_API_TOKEN is what the enrichment lookup needs
+  # (GET /api/0/organizations/{org}/eventids/{event_id}/, scope org:read).
+  # Omit the entry and enrichment is disabled: the consumer still emits every
+  # task with its derived key, so the token is not a hard dependency.
+  secretEnv: []

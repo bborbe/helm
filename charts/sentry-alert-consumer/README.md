@@ -10,8 +10,9 @@ token-REST fan-out as the pipeline trigger.
 The shared `common` library chart renders watcher **StatefulSets** (with a
 datadir PVC) and agent **Config CRs** — not stateless Deployments. This service
 has no cursor/PVC (the in-memory offset replays from oldest; controller dedup
-makes re-emits no-ops) and no secret (the consumer never calls the Sentry API),
-so it ships as a plain Deployment with its own two templates.
+makes re-emits no-ops) and needs no secret to run — its one optional secret
+(`SENTRY_API_TOKEN`, via `consumer.secretEnv`) only enables the per-event
+enrichment lookup, so it ships as a plain Deployment with its own two templates.
 
 ## Values
 
