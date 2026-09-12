@@ -26,6 +26,29 @@ enrichment lookup, so it ships as a plain Deployment with its own two templates.
 | `consumer.env.TARGET_VAULT` | `personal` | vault slug for materialized tasks |
 | `consumer.env.TASK_ASSIGNEE` | `sentry-analyzer-agent` | analyzer assignee |
 | `consumer.logLevel` | `2` | glog verbosity (LOG_LEVEL env) |
+| `consumer.secretEnv` | `[]` | secret-backed env vars rendered as `valueFrom.secretKeyRef` — a list of `{name, secretName, key}` |
+
+## Secret-backed env
+
+`consumer.secretEnv` grants one **key** per entry, never a whole secret:
+
+```yaml
+consumer:
+  secretEnv:
+    - name: SENTRY_API_TOKEN
+      secretName: sentry-analyzer-agent
+      key: SENTRY_API_TOKEN
+```
+
+Prefer it over `envFrom`. `secret/sentry-analyzer-agent` also holds
+`ANTHROPIC_AUTH_TOKEN`, `PEM_KEY` and `SENTRY_DSN` — `envFrom` would hand the
+consumer all of them, `secretEnv` hands it exactly one.
+
+`SENTRY_API_TOKEN` enables the per-event enrichment lookup
+(`GET /api/0/organizations/{org}/eventids/{event_id}/`, scope `org:read`), which
+resolves a derived key to a numeric Sentry issue id so the analyzer can run its
+live-state fetch. Without it the consumer still emits every task, keyed by its
+derived identity — the token is not a hard dependency.
 
 ## Rendering
 
