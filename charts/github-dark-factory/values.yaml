@@ -26,7 +26,7 @@ stage: ""
 
 image:
   # PER-CLUSTER — registry host. Empty default forces the overlay to set it
-  # (e.g. docker.io for public, docker.quant.benjamin-borbe.de:443 for quant).
+  # (e.g. docker.io for public, docker.prod.nuke.benjamin-borbe.de:443 for quant).
   registry: ""
   pullPolicy: IfNotPresent
   # PER-CLUSTER — private-registry pull secret(s), e.g. [{name: docker}].
