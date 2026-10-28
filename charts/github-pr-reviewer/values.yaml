@@ -122,17 +122,24 @@ agent:
 
 # ── Moot sweep (unit-invariant defaults) ────────────────────────────────────
 # The pod-less closer: a long-running Deployment that closes superseded
-# pr-review tasks without ever creating a reviewer pod. Ships as a second
-# binary in the REVIEWER image, so `tag` tracks the agent tag, not its own.
+# pr-review tasks without ever creating a reviewer pod.
+#
+# ⚠️ SEPARATE IMAGE. `bborbe/moot-sweep` is built from `cmd/moot-sweep/Dockerfile`
+# and is NOT the reviewer image — the reviewer's root Dockerfile builds only
+# `/main` from the repo root, so pointing this at `bborbe/github-pr-review-agent`
+# starts the reviewer and the sweep never runs. Both images are built from the
+# same commit (`make buca` / `make buca-moot-sweep`), so their tags normally match.
 #
 # The tick interval is deliberately NOT a values key: five minutes is fixed by
 # the criterion the closer serves, and a knob nobody asked for gets set wrong.
 mootSweep:
   enabled: true
   name: moot-sweep
-  image: bborbe/github-pr-review-agent
+  image: bborbe/moot-sweep
   # tag: empty => Chart.appVersion. Keep it equal to agent.tag in every overlay.
   existingSecret: github-pr-review-agent
+  # tag: empty => Chart.appVersion. Keep it equal to agent.tag in every overlay —
+  # both images are built from the same commit.
   logLevel: "2"
   resources:
     requests:
