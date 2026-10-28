@@ -1,0 +1,132 @@
+{{/*
+================================================================================
+moot-sweep — the pod-less closer for superseded pr-review tasks.
+
+A long-running Deployment (NOT a Job): it consumes the task-event topic, tracks
+queued review tasks, and on a fixed five-minute tick closes the ones whose commit
+is no longer the pull request's head — without ever creating a reviewer pod.
+
+Ships in the SAME image as the reviewer agent (`cmd/moot-sweep` is a second
+binary in that image), so its tag tracks the agent tag.
+
+No Keel annotations — tags are pinned semver (bump + re-apply to roll).
+
+SECURITY POSTURE — deliberately different from common.watcher:
+  * No runAsNonRoot / readOnlyRootFilesystem. The image installs git + gh and
+    shells out to `gh`, which needs a writable HOME and config dir. This matches
+    the reviewer image's own posture; tightening it is a separate change and
+    should be done in the image, not silently here.
+  * allowPrivilegeEscalation is off and ALL capabilities are dropped regardless.
+
+unit keys (see .Values.mootSweep):
+  enabled, name, image, tag, existingSecret, logLevel, resources, env
+================================================================================
+*/}}
+{{- if .Values.mootSweep.enabled }}
+{{- $root := . -}}
+{{- $unit := .Values.mootSweep -}}
+{{- $name := $unit.name -}}
+{{- $ns := include "common.namespace" (dict "root" $root) -}}
+{{- $existingSecret := $unit.existingSecret | default $name -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  labels:
+    app: {{ $name }}
+    {{- include "common.labels" (dict "root" $root "name" $name) | nindent 4 }}
+spec:
+  # Exactly one replica. Two would double-close the same task (harmless — the
+  # routing is idempotent — but it doubles the GitHub calls for no gain).
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+        {{- include "common.labels" (dict "root" $root "name" $name) | nindent 8 }}
+      {{- with $root.Values.rolloutNonce }}
+      annotations:
+        rollout-nonce: {{ . | quote }}
+      {{- end }}
+    spec:
+      {{- with $root.Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "common.image" (dict "root" $root "unit" $unit) | quote }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          args:
+            - -v={{ $unit.logLevel | default "2" }}
+          env:
+            {{- range $k, $v := $unit.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            # GitHub App private key from an EXISTING secret (by name). The chart
+            # never creates this secret — provision it out of band.
+            - name: PEM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $existingSecret }}
+                  key: PEM_KEY
+          ports:
+            - containerPort: 9090
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9090
+              scheme: HTTP
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 9090
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          resources:
+            {{- with $unit.resources }}
+            {{- toYaml . | nindent 12 }}
+            {{- else }}
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: gh-config
+              mountPath: /root/.config/gh
+      volumes:
+        # gh shells out per pass and writes its config/state here; the rootfs
+        # itself stays untouched so a rollout never carries stale state.
+        - name: tmp
+          emptyDir: {}
+        - name: gh-config
+          emptyDir: {}
+{{- end }}

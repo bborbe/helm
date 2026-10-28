@@ -2,11 +2,13 @@ apiVersion: v2
 name: github-pr-reviewer
 description: >-
   github-pr-reviewer business-unit chart — one GitHub watcher StatefulSet
-  (github-pr-watcher) plus one agent Config CR (github-pr-review-agent). The
-  watcher emits pr-review tasks; the agent consumes them. Application layer on
-  top of the core `agent` framework chart; renders via the `common` library chart.
+  (github-pr-watcher), one agent Config CR (github-pr-review-agent), and one
+  moot-sweep Deployment that closes superseded pr-review tasks without spawning
+  a reviewer pod. The watcher emits pr-review tasks; the agent consumes them.
+  Application layer on top of the core `agent` framework chart; renders via the
+  `common` library chart.
 type: application
-version: 0.2.3
+version: 0.3.0
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:

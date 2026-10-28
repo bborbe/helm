@@ -119,3 +119,32 @@ agent:
     # REPO_ALLOWLIST: ""
     # BOT_GITHUB_LOGIN: ""   # e.g. ben-s-pull-request-reviewer[bot]
     # TOPIC_PREFIX: ""
+
+# ── Moot sweep (unit-invariant defaults) ────────────────────────────────────
+# The pod-less closer: a long-running Deployment that closes superseded
+# pr-review tasks without ever creating a reviewer pod. Ships as a second
+# binary in the REVIEWER image, so `tag` tracks the agent tag, not its own.
+#
+# The tick interval is deliberately NOT a values key: five minutes is fixed by
+# the criterion the closer serves, and a knob nobody asked for gets set wrong.
+mootSweep:
+  enabled: true
+  name: moot-sweep
+  image: bborbe/github-pr-review-agent
+  # tag: empty => Chart.appVersion. Keep it equal to agent.tag in every overlay.
+  existingSecret: github-pr-review-agent
+  logLevel: "2"
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  env:
+    # PER-CLUSTER — fill these from the cluster overlay:
+    # APP_ID: ""
+    # INSTALLATION_ID: ""
+    # KAFKA_BROKERS: ""
+    # TOPIC_PREFIX: ""
+    # SENTRY_PROXY: ""
