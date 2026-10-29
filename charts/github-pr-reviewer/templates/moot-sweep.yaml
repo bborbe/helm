@@ -88,6 +88,24 @@ spec:
                 secretKeyRef:
                   name: {{ $existingSecret }}
                   key: PEM_KEY
+            {{- with $unit.gatewaySecret }}
+            # The shared secret vault-api requires in X-Gateway-Secret on every
+            # /api/v1/* request. It is NOT optional in practice: the deployed
+            # vault-api-openclaw sets GATEWAY_SECRET, so a read without it 401s
+            # and the sweep fails closed — closing nothing, which looks exactly
+            # like a quiet topic.
+            #
+            # A separate secret, not a key of existingSecret: the gateway
+            # credential lives in `agent-task-controller-personal` (namespace
+            # `agent`, key `gateway-secret`), and Kubernetes cannot reference a
+            # Secret across namespaces, so the vault's own copy in `dev`/`prod`
+            # is out of reach from here. Set by values, empty by default.
+            - name: VAULT_API_GATEWAY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .name }}
+                  key: {{ .key }}
+            {{- end }}
           ports:
             - containerPort: 9090
               name: http

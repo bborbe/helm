@@ -8,7 +8,7 @@ description: >-
   Application layer on top of the core `agent` framework chart; renders via the
   `common` library chart.
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "0.1.0"
 home: https://github.com/bborbe/helm
 sources:
