@@ -138,6 +138,18 @@ mootSweep:
   image: bborbe/moot-sweep
   # tag: empty => Chart.appVersion. Keep it equal to agent.tag in every overlay.
   existingSecret: github-pr-review-agent
+  # gatewaySecret names the Secret+key carrying the shared credential vault-api
+  # requires in X-Gateway-Secret for /api/v1/*. Empty by default: a cluster whose
+  # vault-api runs without GATEWAY_SECRET needs nothing here. Where it IS set —
+  # both nuke clusters — leaving this empty makes every live read 401 and the
+  # sweep close nothing.
+  #
+  # It must name a Secret in the SAME namespace as the sweep (`agent`), because
+  # Kubernetes has no cross-namespace Secret references; the vault's own copy
+  # lives beside vault-api in `dev`/`prod` and is unreachable from here.
+  gatewaySecret: {}
+  #   name: agent-task-controller-personal
+  #   key: gateway-secret
   # tag: empty => Chart.appVersion. Keep it equal to agent.tag in every overlay —
   # both images are built from the same commit.
   logLevel: "2"
