@@ -7,7 +7,7 @@ description: >-
   repo and runs its own vuln gate. Application layer on top of the core
   `agent` framework chart; renders via the `common` library chart.
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "0.1.1"
 home: https://github.com/bborbe/helm
 sources:
@@ -16,7 +16,7 @@ maintainers:
   - name: bborbe
 dependencies:
   - name: common
-    version: 0.1.4
+    version: 0.1.5
     repository: "file://../common"
 annotations:
   # WATCHER ONLY — unlike github-pr-reviewer, this chart ships NO agent Config

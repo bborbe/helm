@@ -15,7 +15,7 @@ maintainers:
   - name: bborbe
 dependencies:
   - name: common
-    version: 0.1.4
+    version: 0.1.5
     repository: "file://../common"
 annotations:
   # PREREQUISITE: this chart does NOT ship the Config CRD. It emits

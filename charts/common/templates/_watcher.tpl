@@ -28,6 +28,12 @@ unit keys:
   logLevel        (optional) default "2"; feeds -v=<n> arg (NOT an env var)
   storage.size            (optional) default 100Mi
   storage.storageClassName(optional) empty => cluster default StorageClass
+  tmpSizeLimit    (optional) default unset; sets the `tmp` emptyDir's
+                  sizeLimit. Unset renders `emptyDir: {}` (unbounded) — the
+                  historical shape. A workload that writes caches into /tmp
+                  MUST set it: an unbounded emptyDir lives on the node's root
+                  filesystem, so a cache leak fills the node instead of
+                  failing the pod.
   resources       (optional) full resources block override; default 20m/20Mi req,
                   200m/100Mi lim (a gate-running watcher like github-vuln-watcher
                   overrides to fit clone + vulncheck in-pod)
@@ -169,7 +175,14 @@ spec:
             {{- end }}
       volumes:
         - name: tmp
+          {{- with $unit.tmpSizeLimit }}
+          # Bounded so a runaway /tmp write fails THIS pod instead of filling
+          # the node's root filesystem (an emptyDir is node-local).
+          emptyDir:
+            sizeLimit: {{ . }}
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         {{- if $ku.enabled }}
         {{- $userName := $ku.userName | default (printf "%s-%s" $ns $name) }}
         {{- include "common.kafkaCertVolumes" (dict "clientSecret" ($ku.clientSecret | default $userName) "caCertSecret" ($ku.caCertSecret | default "my-cluster-cluster-ca-cert")) | nindent 8 }}
