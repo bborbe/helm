@@ -74,8 +74,9 @@ watcher:
     #
     # 40Gi, not the old 100Mi: measured 2026-10-30 on prod, the caches were
     # 25 GiB (go-build 9.1, golangci-lint 6.0, go/pkg 3.5, trivy 1.4, clones
-    # ~1). Sizing it to ~2x the measured footprint leaves room for the fleet
-    # to grow; a PVC that fills fails the pod with no other guard noticing.
+    # ~1) — 1.6x headroom over that, and ~2x the 21 GiB the 2026-10-09
+    # incident recorded. The footprint grows with fleet size, so a PVC that
+    # fills would fail the pod with no other guard noticing.
     # ⚠️ local-path does NOT support volume expansion and a StatefulSet's
     # volumeClaimTemplates is immutable, so raising this later needs the
     # StatefulSet + PVC recreated (cursor loss = one redundant scan).
