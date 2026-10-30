@@ -64,12 +64,22 @@ watcher:
   existingSecret: github-update-go-agent
   logLevel: "2"
   storage:
-    # Holds cursor.json only — the per-repo map of already-reported finding
-    # sets. Losing it costs one redundant scan, never correctness: a corrupt
-    # file is renamed to cursor.json.corrupt and the cycle cold-starts, and the
-    # emitted task_identifier is a deterministic UUID5 so downstream dedup
-    # absorbs the repeat.
-    size: 100Mi
+    # Holds cursor.json AND — since the cache relocation — the whole in-pod
+    # build/tool footprint: GOCACHE, GOMODCACHE, golangci-lint, trivy and the
+    # per-sweep repo clones (HOME + TMPDIR below). Losing it costs one
+    # redundant scan, never correctness: a corrupt cursor is renamed to
+    # cursor.json.corrupt and the cycle cold-starts, and the emitted
+    # task_identifier is a deterministic UUID5 so downstream dedup absorbs the
+    # repeat.
+    #
+    # 40Gi, not the old 100Mi: measured 2026-10-30 on prod, the caches were
+    # 25 GiB (go-build 9.1, golangci-lint 6.0, go/pkg 3.5, trivy 1.4, clones
+    # ~1). Sizing it to ~2x the measured footprint leaves room for the fleet
+    # to grow; a PVC that fills fails the pod with no other guard noticing.
+    # ⚠️ local-path does NOT support volume expansion and a StatefulSet's
+    # volumeClaimTemplates is immutable, so raising this later needs the
+    # StatefulSet + PVC recreated (cursor loss = one redundant scan).
+    size: 40Gi
     # PER-CLUSTER — storageClassName; empty => cluster default StorageClass.
     storageClassName: ""
   # Clone + full vuln gate (make vulncheck + make check) runs IN-POD per repo
@@ -83,10 +93,25 @@ watcher:
     limits:
       cpu: 1000m
       memory: 1Gi
+  # The `tmp` emptyDir is node-local (it lives on the node's root filesystem),
+  # so anything unbounded written there fills the NODE, not the pod. 2Gi is
+  # comfortably above any single clone plus scratch, and low enough that a
+  # returning leak evicts this pod instead of taking the node to DiskPressure.
+  tmpSizeLimit: 2Gi
   env:
     # Persisted-memory path. Must sit on the PVC above, not the container fs,
     # or every restart re-files the whole fleet.
     CURSOR_PATH: /data/cursor.json
+    # ── Everything the pod writes goes to the PVC, never the emptyDir ────────
+    # Two INDEPENDENT paths put data on /tmp and both must move:
+    #   (a) HOME — the image bakes `ENV HOME=/tmp`, which is where GOCACHE,
+    #       GOMODCACHE, GOLANGCI_LINT_CACHE and TRIVY_CACHE_DIR default to.
+    #   (b) TMPDIR — never set, and the repo clones do NOT derive from HOME:
+    #       the scanner calls os.MkdirTemp with an empty dir, so os.TempDir()
+    #       answers /tmp regardless of HOME. ~1 GiB of clones per sweep.
+    # Moving only (a) leaves the clones on the node's root filesystem.
+    HOME: /data/home
+    TMPDIR: /data/tmp
     # Detection latency target is <= 24h (SC2); the gate run is minutes per
     # repo, so daily-ish beats the Layer-2 10m cadence.
     POLL_INTERVAL: 12h

@@ -14,12 +14,38 @@ of one).
 
 ## What it ships
 
-One StatefulSet (`github-vuln-watcher`) with a small PVC for `cursor.json`,
+One StatefulSet (`github-vuln-watcher`) with a 40Gi PVC that holds the cursor
+**and every cache the in-pod gates write** (see *Caches live on the PVC*),
 plus its Service. **No agent Config CR** — that is the deliberate difference
 from `github-pr-reviewer`. The consuming agent already exists as Config
 `agent-github-update-go` (assignee `github-update-go-agent`), shipped by the
 core `agent` chart. A second Config on the same assignee would double-file
 every task.
+
+## Caches live on the PVC, never on the node
+
+The pod runs `make vulncheck` + `make check` per repo, which means a full Go
+toolchain working set: `GOCACHE`, `GOMODCACHE`, golangci-lint, trivy, plus a
+full clone of every consenting repo. Measured at 25 GiB on prod 2026-10-30.
+
+Two **independent** paths decide where that lands, and both are pinned to the
+PVC (`/data`) here — moving only one leaves the node filling:
+
+| Var | Why it matters |
+|---|---|
+| `HOME` | The image bakes `ENV HOME=/tmp`. Go and the scanners default their cache dirs under `$HOME`. |
+| `TMPDIR` | Never set by the image, and the repo clones do **not** derive from `HOME` — the scanner calls `os.MkdirTemp` with an empty dir, so `os.TempDir()` answers `/tmp` regardless of `HOME`. ~1 GiB of clones per sweep. |
+
+The `tmp` emptyDir stays mounted (some tools hard-code `/tmp`) but carries
+`tmpSizeLimit: 2Gi`. An emptyDir is **node-local** — it lives on the node's
+root filesystem — so an unbounded one lets a cache leak fill the *node* and
+take every workload on it down with `DiskPressure`. The `sizeLimit` makes a
+returning leak fail this pod instead.
+
+⚠️ Raising `storage.size` later is not an in-place edit: `local-path` has
+`allowVolumeExpansion: false` and a StatefulSet's `volumeClaimTemplates` is
+immutable, so it needs the StatefulSet and its PVC recreated (losing
+`cursor.json` costs one redundant scan).
 
 ## Prerequisite
 
@@ -71,6 +97,7 @@ The gate run is minutes per repo, so a daily cadence beats the Layer-2 10m.
 | `REPO_ALLOWLIST` | no | gate 1 — host-qualified repo allowlist; empty = allow-all within OWNER |
 | `POLL_INTERVAL` | no | default `12h` (must not exceed 24h) |
 | `CURSOR_PATH` | no | default `/data/cursor.json` (PVC-mounted) |
+| `HOME` / `TMPDIR` | no | pinned to `/data/home` / `/data/tmp` — **do not override onto `/tmp`** (see *Caches live on the PVC*) |
 | `TOPIC_PREFIX` | no | Kafka topic prefix for CQRS topic construction |
 | `SENTRY_PROXY` | no | Sentry proxy for error reporting |
 
