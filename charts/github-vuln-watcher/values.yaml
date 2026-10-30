@@ -111,8 +111,17 @@ watcher:
     #       the scanner calls os.MkdirTemp with an empty dir, so os.TempDir()
     #       answers /tmp regardless of HOME. ~1 GiB of clones per sweep.
     # Moving only (a) leaves the clones on the node's root filesystem.
-    HOME: /data/home
-    TMPDIR: /data/tmp
+    #
+    # Both point at /data ITSELF, not a subdirectory, and that is deliberate:
+    # the PVC's mount point is the only path guaranteed to exist. os.MkdirTemp
+    # does NOT create its parent (verified: `stat <dir>: no such file or
+    # directory`), so `TMPDIR: /data/tmp` on a fresh PVC would fail every
+    # clone and the watcher would silently scan nothing. Go creates the cache
+    # dirs under HOME itself, so HOME=/data needs no bootstrap either.
+    # No initContainer is needed, and adding one to `common.watcher` would put
+    # it on all nine watchers.
+    HOME: /data
+    TMPDIR: /data
     # Detection latency target is <= 24h (SC2); the gate run is minutes per
     # repo, so daily-ish beats the Layer-2 10m cadence.
     POLL_INTERVAL: 12h

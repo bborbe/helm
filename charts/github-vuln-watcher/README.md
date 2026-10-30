@@ -36,6 +36,11 @@ PVC (`/data`) here — moving only one leaves the node filling:
 | `HOME` | The image bakes `ENV HOME=/tmp`. Go and the scanners default their cache dirs under `$HOME`. |
 | `TMPDIR` | Never set by the image, and the repo clones do **not** derive from `HOME` — the scanner calls `os.MkdirTemp` with an empty dir, so `os.TempDir()` answers `/tmp` regardless of `HOME`. ~1 GiB of clones per sweep. |
 
+Both point at `/data` itself rather than a subdirectory: the PVC's mount point
+is the only path guaranteed to exist, and `os.MkdirTemp` does not create its
+parent — `TMPDIR: /data/tmp` on a fresh PVC fails every clone, which reads as
+"the watcher found no repos".
+
 The `tmp` emptyDir stays mounted (some tools hard-code `/tmp`) but carries
 `tmpSizeLimit: 2Gi`. An emptyDir is **node-local** — it lives on the node's
 root filesystem — so an unbounded one lets a cache leak fill the *node* and
@@ -97,7 +102,7 @@ The gate run is minutes per repo, so a daily cadence beats the Layer-2 10m.
 | `REPO_ALLOWLIST` | no | gate 1 — host-qualified repo allowlist; empty = allow-all within OWNER |
 | `POLL_INTERVAL` | no | default `12h` (must not exceed 24h) |
 | `CURSOR_PATH` | no | default `/data/cursor.json` (PVC-mounted) |
-| `HOME` / `TMPDIR` | no | pinned to `/data/home` / `/data/tmp` — **do not override onto `/tmp`** (see *Caches live on the PVC*) |
+| `HOME` / `TMPDIR` | no | pinned to `/data` — **do not override onto `/tmp`** (see *Caches live on the PVC*) |
 | `TOPIC_PREFIX` | no | Kafka topic prefix for CQRS topic construction |
 | `SENTRY_PROXY` | no | Sentry proxy for error reporting |
 
