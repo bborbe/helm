@@ -42,6 +42,7 @@ values/release history. Provision them out of band before install.
 | `stage` | `dev` / `prod`; names the cluster-scoped PriorityClass uniquely. |
 | `image.registry` / `image.pullSecrets` | Registry host + pull secret(s). |
 | `watcher.storage.storageClassName` | Empty => cluster default StorageClass. |
+| `watcher.resources` | Container `requests`/`limits`; unset => `common.watcher` default (20m/20Mi req, 200m/100Mi lim). Prod overrides `limits.memory` to 1Gi. |
 | `watcher.env.{APP_ID,INSTALLATION_ID,REPO_ALLOWLIST,KAFKA_BROKERS,TOPIC_PREFIX,STAGE,SENTRY_PROXY}` | GitHub App + Kafka + Sentry wiring. |
 | `agent.env.{APP_ID,INSTALLATION_ID,REPO_ALLOWLIST,BOT_GITHUB_LOGIN,TOPIC_PREFIX}` | GitHub App + bot identity + topic wiring. |
 
