@@ -47,6 +47,13 @@
           "description": "Name of an existing Secret holding key PEM_KEY. Required — the chart never creates it."
         },
         "logLevel": { "type": "string" },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": { "type": "object" },
+            "limits": { "type": "object" }
+          }
+        },
         "storage": {
           "type": "object",
           "additionalProperties": false,
